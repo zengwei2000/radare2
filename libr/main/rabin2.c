@@ -269,7 +269,7 @@ static int rabin_dump_symbols(RBin *bin, int len) {
 			r_hex_bin2str (buf, len, ret);
 			printf ("%s %s\n", symbol->name, ret);
 		} else {
-			eprintf ("Cannot read from buffer\n");
+			R_LOG_ERROR ("Cannot read from buffer");
 		}
 		free (buf);
 		free (ret);
