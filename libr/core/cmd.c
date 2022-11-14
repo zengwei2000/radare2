@@ -6044,7 +6044,7 @@ R_API int r_core_cmd_lines(RCore *core, const char *lines) {
 #else
 	const bool istty = true;
 #endif
-	const bool show_progress_bar = core->print->enable_progressbar && r_config_get_b (core->config, "scr.interactive") && r_config_get_i (core->config, "scr.progressbar") && istty;
+	const bool show_progress_bar = core->print->enable_progressbar && r_config_get_b (core->config, "scr.interactive") && r_config_get_b (core->config, "scr.progressbar") && istty;
 	size_t current_line = 0;
 	nl = strchr (odata, '\n');
 	if (nl) {
@@ -6055,6 +6055,7 @@ R_API int r_core_cmd_lines(RCore *core, const char *lines) {
 			}
 			if (r_cons_is_breaked ()) {
 				free (odata);
+				R_LOG_INFO ("cmd.lines is breaked");
 				r_cons_break_pop ();
 				return ret;
 			}
@@ -6063,9 +6064,9 @@ R_API int r_core_cmd_lines(RCore *core, const char *lines) {
 			if (r < 0) {
 				data = nl + 1;
 				ret = -1;
+				R_LOG_INFO ("cmd.lines '%s' fails", data);
 				break;
 			}
-			r_cons_flush ();
 			if (data[0] == 'q') {
 				if (data[1] == '!') {
 					ret = -1;
