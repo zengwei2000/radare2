@@ -67,7 +67,6 @@ r_anal_sources = [
   'p/anal_cris.c',
   '../asm/arch/cris/gnu/cris-dis.c',
   '../asm/arch/cris/gnu/cris-opc.c',
-  'p/anal_dalvik.c',
   'p/anal_ebc.c',
   'p/anal_evm_cs.c',
   'p/anal_gb.c',
