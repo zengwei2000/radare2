@@ -1,23 +1,23 @@
 /* radare - LGPL - Copyright 2010-2019 - pancake */
 
-#include <r_anal.h>
-#include <dalvik/opcode.h>
+#include <r_arch.h>
+#include "dalvik/opcode.h"
 
 #define GETWIDE "32,v%u,<<,v%u,|"
 #define SETWIDE "DUP,v%u,=,32,SWAP,>>,v%u,="
 
-static inline int _anal_get_offset(RAnal *a, int type, int idx) {
-	if (a && a->binb.bin && a->binb.get_offset) {
-		return a->binb.get_offset (a->binb.bin, type, idx);
+static inline int _arch_get_offset(RArchSession *s, int type, int idx) {
+	if (s && s->binb.bin && s->binb.get_offset) {
+		return s->binb.get_offset (s->binb.bin, type, idx);
 	}
 
 	return -1;
 }
 
-static inline const char *_anal_get_name(RAnal *a, int type, int idx) {
-	if (a && a->binb.bin && a->binb.get_name) {
-		return a->binb.get_name (a->binb.bin, type, idx,
-				(bool)a->coreb.cfggeti (a->coreb.core, "asm.pseudo"));
+static inline const char *_arch_get_name(RArchSession *s, int type, int idx) {
+	if (s && s->binb.bin && s->binb.get_name) {
+		return s->binb.get_name (s->binb.bin, type, idx,
+				(bool)(s->coreb.cfggeti (s->coreb.core, "asm.pseudo"));
 	}
 
 	return NULL;
@@ -222,11 +222,11 @@ static void format51l(int len, const ut8* data, ut32* dst, st64* src) {
 }
 
 #define OPCALL(x, y, z) dalvik_math_op(op, data, len, mask, x, y, z)
-static void dalvik_math_op(RAnalOp* op, const ut8* data, int len, RAnalOpMask mask, char* operation, unsigned int optype, OperandType ot) {
+static void dalvik_math_op(RArchOp* op, const ut8* data, int len, RArchDecodeMask mask, char* operation, unsigned int optype, OperandType ot) {
 	ut32 vA = 0, vB = 0, vC = 0;
 	op->type = optype;
 	if (ot == OP_FLOAT || ot == OP_DOUBLE) {
-		op->family = R_ANAL_OP_FAMILY_FPU;
+		op->family = R_ARCH_OP_FAMILY_FPU;
 	}
 
 	char* v = "v";
@@ -266,8 +266,8 @@ static void dalvik_math_op(RAnalOp* op, const ut8* data, int len, RAnalOpMask ma
 	}
 }
 
-static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, int len, int size) {
-	r_return_val_if_fail  (a && op && buf && len > 0, -1);
+static int dalvik_disassemble(RArchSession *s, RArchOp *op, ut64 addr, const ut8 *buf, int len, int size) {
+	r_return_val_if_fail  (s && op && buf && len > 0, -1);
 
 	int vA, vB, vC, vD, vE, vF, vG, vH, payload = 0;
 	char str[1024], *strasm = NULL;
@@ -275,7 +275,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 	ut64 offset;
 	ut8 opcode = buf[0];
 
-	a->config->dataalign = 2;
+	s->config->dataalign = 2;
 
 	if (buf[0] == 0x00) { /* nop */
 		if (len < 2) {
@@ -522,21 +522,21 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			vA = (int) buf[1];
 			vB = (buf[3] << 8) | buf[2];
 			if (buf[0] == 0x1a) {
-				offset = _anal_get_offset (a, 's', vB);
+				offset = _arch_get_offset (a, 's', vB);
 				if (offset == -1) {
 					snprintf (str, sizeof (str), " v%i, string+%i", vA, vB);
 				} else {
 					snprintf (str, sizeof (str), " v%i, 0x%"PFMT64x, vA, offset);
 				}
 			} else if (buf[0] == 0x1c || buf[0] == 0x1f || buf[0] == 0x22) {
-				flag_str = _anal_get_name (a, 'c', vB);
+				flag_str = _arch_get_name (a, 'c', vB);
 				if (!flag_str) {
 					snprintf (str, sizeof (str), " v%i, class+%i", vA, vB);
 				} else {
 					snprintf (str, sizeof (str), " v%i, %s", vA, flag_str);
 				}
 			} else {
-				flag_str = _anal_get_name (a, 'f', vB);
+				flag_str = _arch_get_name (a, 'f', vB);
 				if (!flag_str) {
 					snprintf (str, sizeof (str), " v%i, field+%i", vA, vB);
 				} else {
@@ -549,7 +549,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			vA = (buf[1] & 0x0f);
 			vB = (buf[1] & 0xf0) >> 4;
 			vC = (buf[3]<<8) | buf[2];
-			offset = _anal_get_offset (a, 'o', vC);
+			offset = _arch_get_offset (a, 'o', vC);
 			if (offset == -1) {
 				snprintf (str, sizeof (str), " v%i, v%i, [obj+%04x]", vA, vB, vC);
 			} else {
@@ -560,7 +560,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 		case fmtopAAtBBBB:
 			vA = (int) buf[1];
 			vB = (buf[3] << 8) | buf[2];
-			offset = _anal_get_offset (a, 't', vB);
+			offset = _arch_get_offset (a, 't', vB);
 			if (offset == -1) {
 				snprintf (str, sizeof (str), " v%i, thing+%i", vA, vB);
 			} else {
@@ -573,14 +573,14 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			vB = (buf[1] & 0xf0) >> 4;
 			vC = (buf[3] << 8) | buf[2];
 			if (buf[0] == 0x20 || buf[0] == 0x23) { //instance-of & new-array
-				flag_str = _anal_get_name (a, 'c', vC);
+				flag_str = _arch_get_name (a, 'c', vC);
 				if (flag_str) {
 					snprintf (str, sizeof (str), " v%i, v%i, %s", vA, vB, flag_str);
 				} else {
 					snprintf (str, sizeof (str), " v%i, v%i, class+%i", vA, vB, vC);
 				}
 			} else {
-				flag_str = _anal_get_name (a, 'f', vC);
+				flag_str = _arch_get_name (a, 'f', vC);
 				if (flag_str) {
 					snprintf (str, sizeof (str), " v%i, v%i, %s", vA, vB, flag_str);
 				} else {
@@ -592,7 +592,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 		case fmtopvAAtBBBBBBBB:
 			vA = (int) buf[1];
 			vB = (int) (buf[5] | (buf[4] << 8) | (buf[3] << 16) | (buf[2] << 24));
-			offset = _anal_get_offset (a, 's', vB);
+			offset = _arch_get_offset (a, 's', vB);
 			if (offset == -1) {
 				snprintf (str, sizeof (str), " v%i, string+%i", vA, vB);
 			} else {
@@ -605,7 +605,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			vB = (buf[3] << 8) | buf[2];
 			vC = (buf[5] << 8) | buf[4];
 			if (buf[0] == 0x25) { // filled-new-array/range
-				flag_str = _anal_get_name (a, 'c', vB);
+				flag_str = _arch_get_name (a, 'c', vB);
 				if (flag_str) {
 					snprintf (str, sizeof (str), " {v%i..v%i}, %s", vC, vC + vA - 1, flag_str);
 				}
@@ -613,7 +613,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 					snprintf (str, sizeof (str), " {v%i..v%i}, class+%i", vC, vC + vA - 1, vB);
 				}
 			} else if (buf[0] == 0xfd) { // invoke-custom/range
-				flag_str = _anal_get_name (a, 's', vB);
+				flag_str = _arch_get_name (a, 's', vB);
 				if (flag_str) {
 					snprintf (str, sizeof (str), " {v%i..v%i}, %s", vC, vC + vA - 1, flag_str);
 				}
@@ -621,7 +621,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 					snprintf (str, sizeof (str), " {v%i..v%i}, call_site+%i", vC, vC + vA - 1, vB);
 				}
 			} else {
-				flag_str = _anal_get_name (a, 'm', vB);
+				flag_str = _arch_get_name (a, 'm', vB);
 				if (flag_str) {
 					snprintf (str, sizeof (str), " {v%i..v%i}, %s", vC, vC + vA - 1, flag_str);
 				}
@@ -658,21 +658,21 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			}
 			strasm = r_str_append (strasm, str);
 			if (buf[0] == 0x24) { // filled-new-array
-				flag_str = _anal_get_name (a, 'c', vB);
+				flag_str = _arch_get_name (a, 'c', vB);
 				if (flag_str) {
 					snprintf (str, sizeof (str), ", %s ; 0x%x", flag_str, vB);
 				} else {
 					snprintf (str, sizeof (str), ", class+%i", vB);
 				}
 			} else if (buf[0] == 0xfc) { // invoke-custom
-				flag_str = _anal_get_name (a, 's', vB);
+				flag_str = _arch_get_name (a, 's', vB);
 				if (flag_str) {
 					snprintf (str, sizeof (str), ", %s ; 0x%x", flag_str, vB);
 				} else {
 					snprintf (str, sizeof (str), ", call_site+%i", vB);
 				}
 			} else { // invoke-kind
-				flag_str = _anal_get_name (a, 'm', vB);
+				flag_str = _arch_get_name (a, 'm', vB);
 				if (flag_str) {
 					snprintf (str, sizeof (str), ", %s ; 0x%x", flag_str, vB);
 				} else {
@@ -714,14 +714,14 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			}
 			strasm = r_str_append (strasm, str);
 
-			flag_str = _anal_get_name (a, 'm', vB);
+			flag_str = _arch_get_name (a, 'm', vB);
 			if (flag_str) {
 				strasm = r_str_appendf (strasm, ", %s", flag_str);
 			} else {
 				strasm = r_str_appendf (strasm, ", method+%i", vB);
 			}
 
-			flag_str = _anal_get_name (a, 'p', vH);
+			flag_str = _arch_get_name (a, 'p', vH);
 			if (flag_str) {
 				strasm = r_str_appendf (strasm, ", %s", flag_str);
 			} else {
@@ -733,7 +733,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			vB = (buf[3] << 8) | buf[2];
 			vC = (buf[5] << 8) | buf[4];
 			vH = (buf[7] << 8) | buf[6];
-			flag_str = _anal_get_name (a, 'm', vB);
+			flag_str = _arch_get_name (a, 'm', vB);
 			if (flag_str) {
 				snprintf (str, sizeof (str), " {v%i..v%i}, %s", vC, vC + vA - 1, flag_str);
 			} else {
@@ -741,7 +741,7 @@ static int dalvik_disassemble(RAnal *a, RAnalOp *op, ut64 addr, const ut8 *buf, 
 			}
 			strasm = r_str_append (strasm, str);
 
-			flag_str = _anal_get_name (a, 'p', vH);
+			flag_str = _arch_get_name (a, 'p', vH);
 			if (flag_str) {
 				snprintf (str, sizeof (str), ", %s", flag_str);
 			} else {
@@ -985,7 +985,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 		op->datatype = R_ANAL_DATATYPE_STRING;
 		if (len > 2) {
 			format21c(len, data, &vA, &vB);
-			ut64 offset = _anal_get_offset (anal, 's', vB);
+			ut64 offset = _arch_get_offset (anal, 's', vB);
 			op->ptr = offset;
 			if (mask & R_ARCH_OP_MASK_ESIL) {
 				esilprintf (op, "0x%"PFMT64x",v%u,=", offset, vA);
@@ -997,7 +997,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 			op->type = R_ANAL_OP_TYPE_MOV;
 			op->datatype = R_ANAL_DATATYPE_STRING;
 			format31c(len, data, &vA, &vB);
-			ut64 offset = _anal_get_offset (anal, 's', vB);
+			ut64 offset = _arch_get_offset (anal, 's', vB);
 			op->ptr = offset;
 			if (mask & R_ARCH_OP_MASK_ESIL) {
 				esilprintf (op, "0x%"PFMT64x",v%u,=", offset, vA);
@@ -1009,7 +1009,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 			op->type = R_ANAL_OP_TYPE_MOV;
 			op->datatype = R_ANAL_DATATYPE_CLASS;
 			format21c(len, data, &vA, &vB);
-			ut64 offset = _anal_get_offset (anal, 's', vB);
+			ut64 offset = _arch_get_offset (anal, 's', vB);
 			op->ptr = offset;
 			if (mask & R_ARCH_OP_MASK_ESIL) {
 				esilprintf (op, "0x%"PFMT64x",v%u,=", offset, vA);
@@ -1058,7 +1058,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 
 		// resolve class name for vB
 		format21c(len, data, &vA, &vB);
-		ut64 off = _anal_get_offset (anal, 't', vB);
+		ut64 off = _arch_get_offset (anal, 't', vB);
 		op->ptr = off;
 		if (mask & R_ARCH_OP_MASK_ESIL) {
 			esilprintf (op, "%" PFMT64u ",new,v%d,=", off, vA);
@@ -1244,7 +1244,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 			op->datatype = R_ANAL_DATATYPE_OBJECT;
 			op->type = R_ANAL_OP_TYPE_LOAD;
 			ut32 vC = len > 3?(data[3] << 8) | data[2] : 0;
-			op->ptr = _anal_get_offset (anal, 'f', vC);
+			op->ptr = _arch_get_offset (anal, 'f', vC);
 			if (mask & R_ARCH_OP_MASK_ESIL) {
 				ut32 vA = (data[1] & 0x0f);
 				esilprintf (op, "%" PFMT64d ",v%d,=", op->ptr, vA);
@@ -1291,7 +1291,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 	case 0xfe:
 		op->type = R_ANAL_OP_TYPE_STORE;
 		vC = len > 3?(data[3] << 8) | data[2] : 0;
-		op->ptr = _anal_get_offset (anal, 'f', vC);
+		op->ptr = _arch_get_offset (anal, 'f', vC);
 		if (mask & R_ARCH_OP_MASK_ESIL) {
 			ut32 vA = (data[1] & 0x0f);
 			esilprintf (op, "%" PFMT64d ",v%u,=", op->ptr, vA);
@@ -1576,7 +1576,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 			//XXX fix this better since the check avoid an oob
 			//but the jump will be incorrect
 			ut32 vB = len > 3?(data[3] << 8) | data[2] : 0;
-			ut64 dst = _anal_get_offset (anal, 'm', vB);
+			ut64 dst = _arch_get_offset (anal, 'm', vB);
 			if (dst == 0) {
 				op->type = R_ANAL_OP_TYPE_UCALL;
 			} else {
@@ -1602,7 +1602,7 @@ static int dalvik_op(RAnal *anal, RAnalOp *op, ut64 addr, const ut8 *data, int l
 			//XXX fix this better since the check avoid an oob
 			//but the jump will be incorrect
 			// ut32 vB = len > 3?(data[3] << 8) | data[2] : 3;
-			//op->jump = _anal_get_offset (anal, 'm', vB);
+			//op->jump = _arch_get_offset (anal, 'm', vB);
 			op->fail = addr + sz;
 			// op->type = R_ANAL_OP_TYPE_CALL;
 			op->type = R_ANAL_OP_TYPE_UCALL;
@@ -1682,7 +1682,7 @@ static bool set_reg_profile(RAnal *anal) {
 	return r_reg_set_profile_string (anal->reg, p);
 }
 
-RAnalPlugin r_anal_plugin_dalvik = {
+RAnalPlugin r_arch_plugin_dalvik = {
 	.name = "dalvik",
 	.arch = "dalvik",
 	.set_reg_profile = &set_reg_profile,
@@ -1695,8 +1695,8 @@ RAnalPlugin r_anal_plugin_dalvik = {
 
 #ifndef R2_PLUGIN_INCORE
 R_API RLibStruct radare_plugin = {
-	.type = R_LIB_TYPE_ANAL,
-	.data = &r_anal_plugin_dalvik,
+	.type = R_LIB_TYPE_ARCH,
+	.data = &r_arch_plugin_dalvik,
 	.version = R2_VERSION
 };
 #endif
