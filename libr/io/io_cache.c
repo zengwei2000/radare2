@@ -3,8 +3,7 @@
 #include <r_io.h>
 #include <r_skyline.h>
 
-#if USE_NEW_IO_CACHE_API
-#else
+#if !USE_NEW_IO_CACHE_API
 
 static void cache_item_free(RIOCache *cache) {
 	if (cache) {
