@@ -618,6 +618,7 @@ R_API st64 r_buf_read_at(RBuffer *b, ut64 addr, ut8 *buf, ut64 len) {
 	return r;
 }
 
+#if 0
 static const char *bufnam(RBuffer *b) {
 	if (b->methods == &buffer_bytes_methods) {
 		return "bytes";
@@ -639,6 +640,7 @@ static const char *bufnam(RBuffer *b) {
 	}
 	return "unknown";
 }
+#endif
 
 R_API st64 r_buf_write_at(RBuffer *b, ut64 addr, const ut8 *buf, ut64 len) {
 	r_return_val_if_fail (b && buf && !b->readonly, -1);
@@ -657,7 +659,7 @@ R_API st64 r_buf_write_at(RBuffer *b, ut64 addr, const ut8 *buf, ut64 len) {
 	return r;
 }
 
-// XXX 580 use r_ref api instead
+// XXX R2_590 use r_ref api instead
 R_API void r_buf_fini(RBuffer *b) {
 	if (!b) {
 		return;
@@ -677,7 +679,7 @@ R_API void r_buf_fini(RBuffer *b) {
 	buf_fini (b);
 }
 
-// XXX 580 use r_ref api instead
+// XXX R2_590 use r_ref api instead
 R_API void r_buf_free(RBuffer *b) {
 	if (b) {
 		bool unreferenced = b && b->refctr == 0;
