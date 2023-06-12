@@ -5397,7 +5397,6 @@ static bool cmd_pi(RCore *core, const char *input, int len, int l, ut8 *block) {
 				RConfigHold *hc = r_config_hold_new (core->config);
 				r_config_hold (hc, "asm.offset", "asm.comments", "asm.tabs", "asm.bytes", "emu.str", NULL);
 
-
 				// temporarily replace configurations
 				r_config_set_b (core->config, "asm.offset", false);
 				r_config_set_b (core->config, "asm.comments", false);
