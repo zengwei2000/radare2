@@ -115,6 +115,7 @@ static void r_print_format_u128(RPrintFormat *pf, const char *setval, ut64 seeki
 			cb_printf ("0x%016"PFMT64x, hig);
 			cb_printf ("%016"PFMT64x, low);
 		}
+		cb_printf ("\n");
 	}
 }
 
@@ -1291,7 +1292,7 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 		p->cb_printf ("\"");
 		for (; j < len && ((size == -1 || size-- > 0) && buf[j]) ; j++) {
 			char esc_str[5] = {0};
-			r_print_byte_escape (p, (char *)&buf[j], (char **)&esc_str, false);
+			r_print_byte_escape (p, (char *)&buf[j], (char**)&esc_str, false);
 			p->cb_printf ("%s", esc_str);
 		}
 		p->cb_printf ("\"");
