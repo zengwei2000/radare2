@@ -915,9 +915,6 @@ static int r_print_format_hexpairs(RPrintFormat *pf, const char *setval, ut64 se
 			p->cb_printf (", %d", buf[j]);
 		}
 		p->cb_printf (" ]");
-		if (MUSTSEEJSON) {
-			// p->cb_printf ("}");
-		}
 	}
 	return size;
 }
@@ -1284,9 +1281,8 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 			}
 		}
 		(MUSTSEESTRUCT) ?
-			p->cb_printf ("\"") :
-			p->cb_printf ("\\\"");
-		p->cb_printf ("\n");
+			p->cb_printf ("\"\n") :
+			p->cb_printf ("\\\"\n");
 	} else if (MUSTSEE) {
 		int j = i;
 		if (!SEEVALUE && !ISQUIET) {
@@ -1295,8 +1291,7 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 		p->cb_printf ("\"");
 		for (; j < len && ((size == -1 || size-- > 0) && buf[j]) ; j++) {
 			char esc_str[5] = {0};
-			char *ptr = esc_str;
-			r_print_byte_escape (p, (char *)&buf[j], &ptr, false);
+			r_print_byte_escape (p, (char *)&buf[j], (char **)&esc_str, false);
 			p->cb_printf ("%s", esc_str);
 		}
 		p->cb_printf ("\"");
@@ -1401,8 +1396,9 @@ static void r_print_format_enum(RPrintFormat *pf, ut64 seeki, char *fmtname, cha
 		if (mode & R_PRINT_DOT) {
 			p->cb_printf ("%s.%s", fmtname, enumvalue);
 		} else if (MUSTSEEJSON) {
-			p->cb_printf ("%"PFMT64d",\"label\":\"%s\",\"enum\":\"%s\"}",
-				addr, enumvalue, fmtname);
+			pj_kn (pf->pj, "value", addr);
+			pj_ks (pf->pj, "label", enumvalue);
+			pj_ks (pf->pj, "enum", fmtname);
 		} else if (MUSTSEE) {
 			p->cb_printf ("%s (enum %s) = 0x%"PFMT64x" ; %s\n",
 				fieldname, fmtname, addr, enumvalue);
@@ -1412,6 +1408,8 @@ static void r_print_format_enum(RPrintFormat *pf, ut64 seeki, char *fmtname, cha
 	} else {
 		if (MUSTSEEJSON) {
 			p->cb_printf ("%"PFMT64d",\"enum\":\"%s\"}", addr, fmtname);
+			pj_kn (pf->pj, "value", addr);
+			pj_ks (pf->pj, "enum", fmtname);
 		} else if (MUSTSEE) {
 			p->cb_printf ("%s (enum %s) = 0x%"PFMT64x"\n",//`te %s 0x%x`\n",
 				fieldname, fmtname, addr); //enumvalue); //fmtname, addr);
@@ -1949,7 +1947,7 @@ static void pf_init(RPrintFormat *pf, RPrint *p, int mode) {
 	memset (pf, 0, sizeof (RPrintFormat));
 	pf->mode = mode;
 	pf->p = p;
-	if (mode == R_PRINT_JSON) {
+	if ((mode & R_PRINT_JSON) == R_PRINT_JSON) {
 		pf->pj = pj_new ();
 	}
 }
@@ -2388,7 +2386,11 @@ R_API int r_print_format_internal(RPrint *p, RPrintFormat *pf, ut64 seek, const 
 					pj_ks (pf->pj, "name", fieldname);
 				}
 				if (ISSTRUCT) {
-					pj_ks (pf->pj, "type", fmtname);
+					if (fmtname) {
+						pj_ks (pf->pj, "type", fmtname);
+					} else {
+						pj_ks (pf->pj, "type", "(unknown)");
+					}
 				} else {
 					char *fmt = (tmp == 'n' || tmp == 'N')
 						? r_str_newf ("%c%c", tmp, *(arg+1))
@@ -2621,23 +2623,17 @@ R_API int r_print_format_internal(RPrint *p, RPrintFormat *pf, ut64 seek, const 
 					if (MUSTSEEJSON) {
 						if (isptr) {
 							eprintf ("TODO\n");
-#if 0
-							p->cb_printf ("%"PFMT64d",", seeki);
-							p->cb_printf ("\"data\":");
-#endif
-						} else {
-							pj_a (pf->pj);
+							pj_kn (pf->pj, "ptraddr", seeki);
 						}
-					}
-					if (MUSTSEESTRUCT) {
+						pj_ka (pf->pj, "values");
+					} else if (MUSTSEESTRUCT) {
 						if (isptr) {
 							p->cb_printf ("%"PFMT64d, seeki);
 						} else {
 							pf->ident += 4;
 							p->cb_printf ("\n");
 						}
-					}
-					if (mode & R_PRINT_SEEFLAGS) {
+					} else if (mode & R_PRINT_SEEFLAGS) {
 						pf->slide += STRUCTFLAG;
 					}
 					if (!fmtname) {
@@ -2652,10 +2648,10 @@ R_API int r_print_format_internal(RPrint *p, RPrintFormat *pf, ut64 seek, const 
 					pf->slide += NESTEDSTRUCT;
 					if (size == -1) {
 						s = r_print_format_struct (pf, seeki, buf + i, len - i, fmtname, setval, nxtfield, anon);
-						i += (isptr) ? (p_bits / 8) : s;
+						i += isptr? (p_bits / 8) : s;
 						if (MUSTSEEJSON) {
 							if (!isptr && (!arg[1] || arg[1] == ' ')) {
-								p->cb_printf ("]");
+								pj_end (pf->pj);
 							}
 						}
 					} else {
@@ -2691,7 +2687,6 @@ R_API int r_print_format_internal(RPrint *p, RPrintFormat *pf, ut64 seek, const 
 						}
 						if (MUSTSEEJSON) {
 							pj_end (pf->pj);
-							// p->cb_printf ("]");
 						}
 					}
 					pf->oldslide = pf->slide;
@@ -2738,7 +2733,7 @@ R_API int r_print_format_internal(RPrint *p, RPrintFormat *pf, ut64 seek, const 
 					pf->oldslide -= NESTEDSTRUCT;
 				}
 				p->cb_printf ("\n");
-			} else if (mode & R_PRINT_JSON) {
+			} else if (pf->pj && mode & R_PRINT_JSON) {
 				pj_kn (pf->pj, "size", i - oi);
 				pj_end (pf->pj);
 			} else if (mode & R_PRINT_DOT) {
