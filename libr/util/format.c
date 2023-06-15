@@ -972,6 +972,7 @@ static void r_print_format_float(RPrintFormat *pf, const char *setval, ut64 seek
 			}
 		}
 	}
+	p->cb_printf ("\n");
 }
 
 static void r_print_format_long_double(RPrintFormat *pf, const char *setval, ut64 seeki, ut8* buf, int i, int size) {
