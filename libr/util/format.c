@@ -328,7 +328,7 @@ static void r_print_format_char(RPrintFormat *pf, const char *setval, ut64 seeki
 			p->cb_printf ("0x%08" PFMT64x " = ", seeki + ((elem >= 0) ? elem * 2 : 0)); //XXX:: shouldn't it be elem*1??
 		}
 		if (size == -1) {
-			p->cb_printf ("'%c'", IS_PRINTABLE (buf[i])?buf[i]:'.');
+			p->cb_printf ("'%c'\n", IS_PRINTABLE (buf[i])?buf[i]:'.');
 		} else {
 			if (!SEEVALUE) {
 				p->cb_printf ("[ ");
@@ -351,6 +351,7 @@ static void r_print_format_char(RPrintFormat *pf, const char *setval, ut64 seeki
 			if (!SEEVALUE) {
 				p->cb_printf (" ]");
 			}
+			p->cb_printf ("\n"); // XXX not needed?
 		}
 	} else if (MUSTSEEJSON || MUSTSEESTRUCT) {
 		char chars[2] = {0};
