@@ -485,12 +485,12 @@ static void r_print_format_time(RPrintFormat *pf, const char *setval, ut64 seeki
 			return;
 		}
 		r_asctime_r (gmtime_r ((time_t*)&addr, &timestruct), timestr);
-		*(timestr+24) = '\0';
+		*(timestr + 24) = '\0';
 		if (!SEEVALUE && !ISQUIET) {
 			p->cb_printf ("0x%08" PFMT64x " = ", seeki + ((elem >= 0) ? elem * 4 : 0));
 		}
-		if (size==-1) {
-			p->cb_printf ("%s", timestr);
+		if (size == -1) {
+			p->cb_printf ("%s\n", timestr);
 		} else {
 			if (!SEEVALUE) {
 				p->cb_printf ("[ ");
@@ -516,6 +516,7 @@ static void r_print_format_time(RPrintFormat *pf, const char *setval, ut64 seeki
 			if (!SEEVALUE) {
 				p->cb_printf (" ]");
 			}
+			p->cb_printf ("\n"); // XXX maybe not needed?
 		}
 		free (timestr);
 	} else if (MUSTSEEJSON || MUSTSEESTRUCT) {
