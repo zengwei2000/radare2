@@ -2236,8 +2236,10 @@ R_API int r_print_format_internal(RPrint *p, RPrintFormat *pf, ut64 seek, const 
 				}
 				if (tmp != '.' && tmp != ':') {
 					idx++;
-					if (MUSTSEE && !SEEVALUE) {
-						if (!ISQUIET) {
+					if ((pf->mode & R_PRINT_MUSTSEE &&
+						pf->mode & R_PRINT_ISFIELD &&
+						!(pf->mode & R_PRINT_JSON)) && !(pf->mode & R_PRINT_VALUE)) {
+						if (!(pf->mode & R_PRINT_QUIET)) {
 							p->cb_printf (namefmt, fieldname);
 						}
 					}
