@@ -1213,9 +1213,8 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 		ut8 ch = 0xff;
 		// XXX there are some cases where the memory is there but is_valid_offset fails wtf
 		if (p->iob.read_at (p->iob.io, seeki, &ch, 1) != 1 && ch != 0xff) {
-			// p->cb_printf ("\"\"");
 			if (MUSTSEEJSON) {
-				// p->cb_printf ("}");
+				pj_kb (pf->pj, "readerror", true);
 			}
 			return;
 		}
@@ -1287,6 +1286,7 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 		(MUSTSEESTRUCT) ?
 			p->cb_printf ("\"") :
 			p->cb_printf ("\\\"");
+		p->cb_printf ("\n");
 	} else if (MUSTSEE) {
 		int j = i;
 		if (!SEEVALUE && !ISQUIET) {
@@ -1307,7 +1307,6 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 		if (overflow) {
 			pj_kb (pf->pj, "overflow", true);
 		}
-		// p->cb_printf ("}");
 	}
 }
 
