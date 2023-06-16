@@ -1202,11 +1202,6 @@ static void r_print_format_word(RPrintFormat *pf, const char *setval, ut64 seeki
 	}
 }
 
-static void r_print_byte_escape(const RPrint* p, const char *src, char **dst, int dot_nl) {
-	r_return_if_fail (p->strconv_mode);
-	r_str_byte_escape (src, dst, dot_nl, !strcmp (p->strconv_mode, "asciidot"), p->esc_bslash);
-}
-
 static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char *setval, ut64 seeki, ut8* buf, int i, int size) {
 	RPrint *p = pf->p;
 	const int mode = pf->mode;
@@ -1294,11 +1289,9 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 		}
 		p->cb_printf ("\"");
 		for (; j < len && ((size == -1 || size-- > 0) && buf[j]) ; j++) {
-			char esc_str[5] = {0};
-			r_print_byte_escape (p, (char *)&buf[j], (char**)&esc_str, false);
-			p->cb_printf ("%s", esc_str);
+			p->cb_printf ("%c", IS_PRINTABLE (buf[j])? buf[j]: '.');
 		}
-		p->cb_printf ("\"");
+		p->cb_printf ("\"\n");
 	} else if (MUSTSEEJSON) {
 		char *s = r_str_ndup ((const char *)buf + i, str_len);
 		pj_ks (pf->pj, "value", s);
