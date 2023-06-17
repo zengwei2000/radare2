@@ -330,3 +330,4 @@ This binary has not been analyzed. Would you like to analyze it now?
 The software is up to date. Just kidding, git pull again
 Caps lock is on.
 It's now safe to turn off your computer.
+No newline at end of file
