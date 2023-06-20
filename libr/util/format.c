@@ -956,7 +956,7 @@ static int r_print_format_hexpairs(RPrintFormat *pf, const char *setval, ut64 se
 		for (j = 0; j < size; j++) {
 			if (!SEEVALUE) {
 				if (IS_PRINTABLE (buf[j])) {
-					p->cb_printf ("%c", buf[i+j]);
+					p->cb_printf ("%c", buf[i + j]);
 				} else {
 					p->cb_printf (".");
 				}
@@ -1354,6 +1354,7 @@ static void r_print_format_nulltermstring(RPrintFormat *pf, int len, const char 
 		}
 		p->cb_printf ("\"");
 		for (; j < len && ((size == -1 || size-- > 0) && buf[j]) ; j++) {
+			// XXX this fails some test, do we need another macro / function to check?
 			p->cb_printf ("%c", IS_PRINTABLE (buf[j])? buf[j]: '.');
 		}
 		p->cb_printf ("\"\n");
@@ -1397,6 +1398,7 @@ static void r_print_format_nulltermwidestring(RPrintFormat* pf, const int len, c
 				p->cb_printf (".");
 			}
 		}
+		p->cb_printf ("\n");
 	} else if (MUSTSEEJSON) {
 		pj_ks (pf->pj, "value", (const char *)buf);
 	}
