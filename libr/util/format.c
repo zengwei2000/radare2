@@ -516,6 +516,7 @@ static int r_print_format_string(RPrintFormat *pf, ut64 seeki, ut64 addr64, ut64
 		if (res > 0 && buffer[0] != 0xff && buffer[1] != 0xff) {
 			p->cb_printf ("\"%s\"", buffer);
 		}
+		p->cb_printf ("\n");
 	}
 	return 0;
 }
