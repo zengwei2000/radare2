@@ -4788,6 +4788,7 @@ static RList *anal_preludes(RArchSession *as) {
 		default:
 			r_list_free (l);
 			l = NULL;
+			break;
 		}
 	} else {
 		switch (as->config->bits) {
@@ -4807,6 +4808,7 @@ static RList *anal_preludes(RArchSession *as) {
 		default:
 			r_list_free (l);
 			l = NULL;
+			break;
 		}
 	}
 	return l;
